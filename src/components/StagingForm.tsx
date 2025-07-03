@@ -73,16 +73,56 @@ export const StagingForm = ({
     setIsProcessing(true);
     
     try {
-      // For demo purposes, we'll simulate the staging process
-      // In a real implementation, you would integrate with Runware API here
+      const prompt = generatePrompt();
       
-      await new Promise(resolve => setTimeout(resolve, 3000)); // Simulate processing
+      // Call Runware API to generate the staged image
+      const response = await fetch('https://api.runware.ai/v1', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify([
+          {
+            taskType: "authentication",
+            apiKey: apiKey
+          },
+          {
+            taskType: "imageInference",
+            taskUUID: crypto.randomUUID(),
+            positivePrompt: prompt,
+            width: 1024,
+            height: 1024,
+            model: "runware:100@1",
+            numberResults: 1,
+            outputFormat: "WEBP",
+            CFGScale: 1,
+            scheduler: "FlowMatchEulerDiscreteScheduler",
+            strength: 0.8
+          }
+        ])
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.error || result.errors) {
+        throw new Error(result.errorMessage || result.errors?.[0]?.message || "Failed to generate image");
+      }
+
+      const imageData = result.data?.find((item: any) => item.taskType === "imageInference");
+      
+      if (!imageData?.imageURL) {
+        throw new Error("No image was generated");
+      }
       
       const stagedImage: StagedImage = {
         id: Date.now().toString(),
         originalUrl: imageUrl,
-        stagedUrl: imageUrl, // In real implementation, this would be the AI-generated image
-        prompt: generatePrompt(),
+        stagedUrl: imageData.imageURL,
+        prompt: prompt,
         roomType: roomTypes.find(r => r.value === roomType)?.label || roomType,
         style: styles.find(s => s.value === style)?.label || style,
         timestamp: new Date(),
@@ -91,7 +131,8 @@ export const StagingForm = ({
       onStaging(stagedImage);
       toast.success("Room staged successfully!");
     } catch (error) {
-      toast.error("Failed to stage room. Please try again.");
+      console.error("Staging error:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to stage room. Please try again.");
     } finally {
       setIsProcessing(false);
     }
