@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { ArrowLeft, Wand2 } from "lucide-react";
 import { StagedImage } from "@/pages/Index";
+import { supabase } from "@/integrations/supabase/client";
 
 interface StagingFormProps {
   imageUrl: string;
@@ -28,7 +28,6 @@ export const StagingForm = ({
   const [roomType, setRoomType] = useState("");
   const [style, setStyle] = useState("");
   const [customPrompt, setCustomPrompt] = useState("");
-  const [apiKey, setApiKey] = useState("");
 
   const roomTypes = [
     { value: "living-room", label: "Living Room" },
@@ -65,74 +64,37 @@ export const StagingForm = ({
       return;
     }
 
-    if (!apiKey.trim()) {
-      toast.error("Please enter your Runware API key");
-      return;
-    }
-
     setIsProcessing(true);
     
     try {
       const prompt = generatePrompt();
       
-      // Call Runware API to generate the staged image
-      const response = await fetch('https://api.runware.ai/v1', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify([
-          {
-            taskType: "authentication",
-            apiKey: apiKey
-          },
-          {
-            taskType: "imageInference",
-            taskUUID: crypto.randomUUID(),
-            positivePrompt: prompt,
-            width: 1024,
-            height: 1024,
-            model: "runware:100@1",
-            numberResults: 1,
-            outputFormat: "WEBP",
-            CFGScale: 1,
-            scheduler: "FlowMatchEulerDiscreteScheduler",
-            strength: 0.8
-          }
-        ])
+      const { data, error } = await supabase.functions.invoke('generate-staged-image', {
+        body: {
+          originalImageUrl: imageUrl,
+          prompt: prompt,
+          roomType: roomTypes.find(r => r.value === roomType)?.label || roomType,
+          style: styles.find(s => s.value === style)?.label || style
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status}`);
-      }
+      if (error) throw error;
 
-      const result = await response.json();
-      
-      if (result.error || result.errors) {
-        throw new Error(result.errorMessage || result.errors?.[0]?.message || "Failed to generate image");
-      }
-
-      const imageData = result.data?.find((item: any) => item.taskType === "imageInference");
-      
-      if (!imageData?.imageURL) {
-        throw new Error("No image was generated");
-      }
-      
       const stagedImage: StagedImage = {
-        id: Date.now().toString(),
-        originalUrl: imageUrl,
-        stagedUrl: imageData.imageURL,
-        prompt: prompt,
-        roomType: roomTypes.find(r => r.value === roomType)?.label || roomType,
-        style: styles.find(s => s.value === style)?.label || style,
-        timestamp: new Date(),
+        id: data.id,
+        originalUrl: data.originalUrl,
+        stagedUrl: data.stagedUrl,
+        prompt: data.prompt,
+        roomType: data.roomType,
+        style: data.style,
+        timestamp: data.timestamp,
       };
 
       onStaging(stagedImage);
       toast.success("Room staged successfully!");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Staging error:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to stage room. Please try again.");
+      toast.error(error.message || "Failed to stage room. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -172,28 +134,6 @@ export const StagingForm = ({
             <CardTitle>Staging Options</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="api-key">Runware API Key</Label>
-              <Input
-                id="api-key"
-                type="password"
-                placeholder="Enter your Runware API key"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-              />
-              <p className="text-xs text-gray-500">
-                Get your API key from{" "}
-                <a 
-                  href="https://runware.ai" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline"
-                >
-                  runware.ai
-                </a>
-              </p>
-            </div>
-
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="room-type">Room Type</Label>
@@ -241,7 +181,7 @@ export const StagingForm = ({
 
             <Button
               onClick={handleStaging}
-              disabled={isProcessing || !roomType || !style || !apiKey.trim()}
+              disabled={isProcessing || !roomType || !style}
               className="w-full bg-blue-600 hover:bg-blue-700"
               size="lg"
             >

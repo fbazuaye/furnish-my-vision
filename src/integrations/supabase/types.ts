@@ -123,6 +123,42 @@ export type Database = {
         }
         Relationships: []
       }
+      staged_images: {
+        Row: {
+          created_at: string
+          id: string
+          original_image_url: string
+          prompt: string
+          room_type: string
+          staged_image_url: string
+          style: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          original_image_url: string
+          prompt: string
+          room_type: string
+          staged_image_url: string
+          style: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          original_image_url?: string
+          prompt?: string
+          room_type?: string
+          staged_image_url?: string
+          style?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_api_keys: {
         Row: {
           api_key_encrypted: string
