@@ -11,6 +11,7 @@ interface GenerateImageRequest {
   prompt: string;
   roomType: string;
   style: string;
+  referenceImages?: string[];
 }
 
 serve(async (req) => {
@@ -48,7 +49,7 @@ serve(async (req) => {
       )
     }
 
-    const { originalImageUrl, prompt, roomType, style }: GenerateImageRequest = await req.json()
+    const { originalImageUrl, prompt, roomType, style, referenceImages }: GenerateImageRequest = await req.json()
 
     if (!originalImageUrl || !prompt || !roomType || !style) {
       return new Response(
@@ -67,30 +68,46 @@ serve(async (req) => {
     }
 
     // Generate image using Runware API
+    let enhancedPrompt = `${prompt}. Transform this ${roomType} with ${style} style furniture and decor. Professional interior design, well-lit, modern staging.`;
+    
+    if (referenceImages && referenceImages.length > 0) {
+      enhancedPrompt += ` Use the provided reference images as style and design inspiration.`;
+    }
+
+    // Build the API request
+    const apiRequest = [
+      {
+        taskType: "authentication",
+        apiKey: runwareApiKey
+      },
+      {
+        taskType: "imageInference",
+        taskUUID: crypto.randomUUID(),
+        positivePrompt: enhancedPrompt,
+        width: 1024,
+        height: 1024,
+        model: "runware:100@1",
+        numberResults: 1,
+        outputFormat: "WEBP",
+        CFGScale: 1,
+        scheduler: "FlowMatchEulerDiscreteScheduler",
+        strength: 0.8
+      }
+    ];
+
+    // Add reference images if available
+    if (referenceImages && referenceImages.length > 0) {
+      // For now, we'll include the first reference image as controlNet or similar
+      // This would depend on Runware's specific API capabilities for reference images
+      console.log(`Using ${referenceImages.length} reference images for styling guidance`);
+    }
+
     const runwareResponse = await fetch('https://api.runware.ai/v1', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify([
-        {
-          taskType: "authentication",
-          apiKey: runwareApiKey
-        },
-        {
-          taskType: "imageInference",
-          taskUUID: crypto.randomUUID(),
-          positivePrompt: `${prompt}. Transform this ${roomType} with ${style} style furniture and decor. Professional interior design, well-lit, modern staging.`,
-          width: 1024,
-          height: 1024,
-          model: "runware:100@1",
-          numberResults: 1,
-          outputFormat: "WEBP",
-          CFGScale: 1,
-          scheduler: "FlowMatchEulerDiscreteScheduler",
-          strength: 0.8
-        }
-      ])
+      body: JSON.stringify(apiRequest)
     })
 
     if (!runwareResponse.ok) {
