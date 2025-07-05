@@ -87,7 +87,7 @@ export const StagingForm = ({
         prompt: data.prompt,
         roomType: data.roomType,
         style: data.style,
-        timestamp: data.timestamp,
+        timestamp: new Date(data.timestamp),
       };
 
       onStaging(stagedImage);
