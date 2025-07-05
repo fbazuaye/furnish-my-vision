@@ -107,13 +107,42 @@ serve(async (req) => {
       throw new Error('No image generated')
     }
 
+    // Download the generated image
+    const imageResponse = await fetch(imageResult.imageURL)
+    if (!imageResponse.ok) {
+      throw new Error('Failed to download generated image')
+    }
+    
+    const imageBlob = await imageResponse.blob()
+    const fileName = `${user.id}/${crypto.randomUUID()}.webp`
+    
+    // Upload to storage bucket
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('staged-images')
+      .upload(fileName, imageBlob, {
+        contentType: 'image/webp',
+        upsert: false
+      })
+
+    if (uploadError) {
+      console.error('Storage upload error:', uploadError)
+      throw new Error('Failed to store image')
+    }
+
+    // Get the public URL
+    const { data: publicUrlData } = supabase.storage
+      .from('staged-images')
+      .getPublicUrl(fileName)
+
+    const stagedImageUrl = publicUrlData.publicUrl
+
     // Store the staged image in the database
     const { data: stagedImage, error: dbError } = await supabase
       .from('staged_images')
       .insert({
         user_id: user.id,
         original_image_url: originalImageUrl,
-        staged_image_url: imageResult.imageURL,
+        staged_image_url: stagedImageUrl,
         prompt: prompt,
         room_type: roomType,
         style: style
@@ -130,7 +159,7 @@ serve(async (req) => {
       JSON.stringify({
         id: stagedImage.id,
         originalUrl: originalImageUrl,
-        stagedUrl: imageResult.imageURL,
+        stagedUrl: stagedImageUrl,
         prompt: prompt,
         roomType: roomType,
         style: style,
