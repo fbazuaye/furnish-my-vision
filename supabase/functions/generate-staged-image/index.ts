@@ -74,7 +74,8 @@ serve(async (req) => {
       enhancedPrompt += ` Use the provided reference images as style and design inspiration.`;
     }
 
-    // Build the API request
+    // Build the API request for inpainting
+    const taskUUID = crypto.randomUUID();
     const apiRequest = [
       {
         taskType: "authentication",
@@ -82,16 +83,18 @@ serve(async (req) => {
       },
       {
         taskType: "imageInference",
-        taskUUID: crypto.randomUUID(),
+        taskUUID: taskUUID,
         positivePrompt: enhancedPrompt,
+        inputImage: originalImageUrl,
         width: 1024,
         height: 1024,
         model: "runware:100@1",
         numberResults: 1,
         outputFormat: "WEBP",
-        CFGScale: 1,
+        CFGScale: 7,
         scheduler: "FlowMatchEulerDiscreteScheduler",
-        strength: 0.8
+        strength: 0.7,
+        steps: 20
       }
     ];
 
