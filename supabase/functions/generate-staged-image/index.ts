@@ -14,6 +14,105 @@ interface GenerateImageRequest {
   referenceImages?: string[];
 }
 
+interface StagingElements {
+  furniture: string[];
+  decor: string[];
+  lighting: string[];
+  colors: string[];
+  materials: string[];
+  accessories: string[];
+  promptEnhancement: string;
+}
+
+function generateStagingBreakdown(roomType: string, style: string, prompt: string): StagingElements {
+  const furniture: string[] = [];
+  const decor: string[] = [];
+  const lighting: string[] = [];
+  const colors: string[] = [];
+  const materials: string[] = [];
+  const accessories: string[] = [];
+
+  // Base furniture by room type
+  switch (roomType.toLowerCase()) {
+    case 'living room':
+      furniture.push('Sofa', 'Coffee table', 'Side tables', 'TV stand', 'Armchairs');
+      accessories.push('Throw pillows', 'Blankets', 'Remote organizer');
+      break;
+    case 'bedroom':
+      furniture.push('Bed frame', 'Nightstands', 'Dresser', 'Reading chair');
+      accessories.push('Bedding set', 'Decorative pillows', 'Table lamps');
+      break;
+    case 'kitchen':
+      furniture.push('Bar stools', 'Kitchen island', 'Dining chairs');
+      accessories.push('Fruit bowl', 'Kitchen towels', 'Decorative containers');
+      break;
+    case 'dining room':
+      furniture.push('Dining table', 'Dining chairs', 'Buffet', 'Bar cart');
+      accessories.push('Table runner', 'Centerpiece', 'Dinnerware');
+      break;
+    case 'office':
+      furniture.push('Desk', 'Office chair', 'Bookshelf', 'Filing cabinet');
+      accessories.push('Desk organizer', 'Books', 'Desk lamp');
+      break;
+    default:
+      furniture.push('Accent furniture', 'Storage solutions');
+  }
+
+  // Style-specific additions
+  switch (style.toLowerCase()) {
+    case 'modern':
+      colors.push('White', 'Gray', 'Black', 'Bold accent colors');
+      materials.push('Glass', 'Metal', 'Leather', 'Concrete');
+      lighting.push('Recessed lighting', 'Pendant lights', 'Floor lamps');
+      decor.push('Abstract art', 'Geometric patterns', 'Minimalist sculptures');
+      break;
+    case 'traditional':
+      colors.push('Warm neutrals', 'Rich blues', 'Deep reds', 'Gold accents');
+      materials.push('Wood', 'Fabric', 'Brass', 'Natural stone');
+      lighting.push('Chandeliers', 'Table lamps', 'Sconces');
+      decor.push('Classic paintings', 'Ornate mirrors', 'Traditional patterns');
+      break;
+    case 'minimalist':
+      colors.push('White', 'Beige', 'Light gray', 'Natural tones');
+      materials.push('Natural wood', 'Linen', 'Cotton', 'Stone');
+      lighting.push('Natural light', 'Simple pendant lights', 'Floor lamps');
+      decor.push('Single statement piece', 'Plants', 'Clean lines');
+      break;
+    case 'industrial':
+      colors.push('Gray', 'Black', 'Brown', 'Rust accents');
+      materials.push('Metal', 'Raw wood', 'Brick', 'Concrete');
+      lighting.push('Exposed bulbs', 'Metal fixtures', 'Track lighting');
+      decor.push('Industrial art', 'Metal sculptures', 'Vintage posters');
+      break;
+    case 'scandinavian':
+      colors.push('White', 'Light gray', 'Soft pastels', 'Natural wood tones');
+      materials.push('Light wood', 'Wool', 'Linen', 'Ceramic');
+      lighting.push('Pendant lights', 'String lights', 'Natural light');
+      decor.push('Nordic art', 'Hygge elements', 'Cozy textiles');
+      break;
+  }
+
+  // Parse custom prompt for additional elements
+  const promptLower = prompt.toLowerCase();
+  if (promptLower.includes('plant')) accessories.push('Indoor plants', 'Planters');
+  if (promptLower.includes('book')) accessories.push('Books', 'Bookends');
+  if (promptLower.includes('candle')) accessories.push('Candles', 'Candle holders');
+  if (promptLower.includes('mirror')) decor.push('Wall mirrors', 'Decorative mirrors');
+  if (promptLower.includes('rug')) accessories.push('Area rug', 'Floor coverings');
+
+  const promptEnhancement = `Include: ${furniture.join(', ')}, ${decor.join(', ')}, ${lighting.join(', ')}, using ${colors.join(', ')} color palette with ${materials.join(', ')} materials`;
+
+  return {
+    furniture,
+    decor,
+    lighting,
+    colors,
+    materials,
+    accessories,
+    promptEnhancement
+  };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -67,8 +166,11 @@ serve(async (req) => {
       )
     }
 
+    // Generate detailed staging breakdown
+    const stagingElements = generateStagingBreakdown(roomType, style, prompt);
+    
     // Generate image using Runware API
-    let enhancedPrompt = `${prompt}. Transform this ${roomType} with ${style} style furniture and decor. Professional interior design, well-lit, modern staging.`;
+    let enhancedPrompt = `${prompt}. Transform this ${roomType} with ${style} style furniture and decor. Professional interior design, well-lit, modern staging. ${stagingElements.promptEnhancement}`;
     
     if (referenceImages && referenceImages.length > 0) {
       enhancedPrompt += ` Use the provided reference images as style and design inspiration.`;
