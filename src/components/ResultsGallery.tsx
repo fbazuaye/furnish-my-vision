@@ -2,15 +2,29 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Download, Calendar } from "lucide-react";
+import { Download, Calendar, ChevronDown, ChevronUp } from "lucide-react";
 import { StagedImage } from "@/pages/Index";
+import { StagingBreakdown } from "@/components/StagingBreakdown";
 import { toast } from "sonner";
+import { useState } from "react";
 
 interface ResultsGalleryProps {
   images: StagedImage[];
 }
 
 export const ResultsGallery = ({ images }: ResultsGalleryProps) => {
+  const [expandedCards, setExpandedCards] = useState<Set<string>>(new Set());
+
+  const toggleExpanded = (imageId: string) => {
+    const newExpanded = new Set(expandedCards);
+    if (newExpanded.has(imageId)) {
+      newExpanded.delete(imageId);
+    } else {
+      newExpanded.add(imageId);
+    }
+    setExpandedCards(newExpanded);
+  };
+
   const handleDownload = async (image: StagedImage) => {
     try {
       const response = await fetch(image.stagedUrl);
@@ -58,6 +72,20 @@ export const ResultsGallery = ({ images }: ResultsGalleryProps) => {
                   <Badge variant="secondary">{image.roomType}</Badge>
                   <Badge variant="outline">{image.style}</Badge>
                 </div>
+                {image.stagingElements && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => toggleExpanded(image.id)}
+                    className="p-1 h-8 w-8"
+                  >
+                    {expandedCards.has(image.id) ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
+                  </Button>
+                )}
               </div>
               
               <p className="text-sm text-gray-600 line-clamp-2">
@@ -68,6 +96,14 @@ export const ResultsGallery = ({ images }: ResultsGalleryProps) => {
                 <Calendar className="w-3 h-3 mr-1" />
                 {image.timestamp.toLocaleDateString()}
               </div>
+
+              {image.stagingElements && expandedCards.has(image.id) && (
+                <StagingBreakdown 
+                  stagingElements={image.stagingElements}
+                  roomType={image.roomType}
+                  style={image.style}
+                />
+              )}
             </div>
           </CardContent>
         </Card>

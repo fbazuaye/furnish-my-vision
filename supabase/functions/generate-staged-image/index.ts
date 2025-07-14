@@ -267,7 +267,13 @@ serve(async (req) => {
         staged_image_url: stagedImageUrl,
         prompt: prompt,
         room_type: roomType,
-        style: style
+        style: style,
+        staging_furniture: stagingElements.furniture,
+        staging_decor: stagingElements.decor,
+        staging_lighting: stagingElements.lighting,
+        staging_colors: stagingElements.colors,
+        staging_materials: stagingElements.materials,
+        staging_accessories: stagingElements.accessories
       })
       .select()
       .single()
@@ -285,7 +291,15 @@ serve(async (req) => {
         prompt: prompt,
         roomType: roomType,
         style: style,
-        timestamp: new Date(stagedImage.created_at)
+        timestamp: new Date(stagedImage.created_at),
+        stagingElements: {
+          furniture: stagingElements.furniture,
+          decor: stagingElements.decor,
+          lighting: stagingElements.lighting,
+          colors: stagingElements.colors,
+          materials: stagingElements.materials,
+          accessories: stagingElements.accessories
+        }
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

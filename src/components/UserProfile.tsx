@@ -6,15 +6,21 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { User } from "@supabase/supabase-js";
 import { toast } from "sonner";
 
-interface StagedImage {
-  id: string;
-  original_image_url: string;
-  staged_image_url: string;
-  prompt: string;
-  room_type: string;
-  style: string;
-  created_at: string;
-}
+  interface StagedImage {
+    id: string;
+    original_image_url: string;
+    staged_image_url: string;
+    prompt: string;
+    room_type: string;
+    style: string;
+    created_at: string;
+    staging_furniture?: string[];
+    staging_decor?: string[];
+    staging_lighting?: string[];
+    staging_colors?: string[];
+    staging_materials?: string[];
+    staging_accessories?: string[];
+  }
 
 interface UserProfileProps {
   user: User;

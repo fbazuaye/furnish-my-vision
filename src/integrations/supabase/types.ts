@@ -213,6 +213,12 @@ export type Database = {
           prompt: string
           room_type: string
           staged_image_url: string
+          staging_accessories: string[] | null
+          staging_colors: string[] | null
+          staging_decor: string[] | null
+          staging_furniture: string[] | null
+          staging_lighting: string[] | null
+          staging_materials: string[] | null
           style: string
           updated_at: string
           user_id: string
@@ -224,6 +230,12 @@ export type Database = {
           prompt: string
           room_type: string
           staged_image_url: string
+          staging_accessories?: string[] | null
+          staging_colors?: string[] | null
+          staging_decor?: string[] | null
+          staging_furniture?: string[] | null
+          staging_lighting?: string[] | null
+          staging_materials?: string[] | null
           style: string
           updated_at?: string
           user_id: string
@@ -235,6 +247,12 @@ export type Database = {
           prompt?: string
           room_type?: string
           staged_image_url?: string
+          staging_accessories?: string[] | null
+          staging_colors?: string[] | null
+          staging_decor?: string[] | null
+          staging_furniture?: string[] | null
+          staging_lighting?: string[] | null
+          staging_materials?: string[] | null
           style?: string
           updated_at?: string
           user_id?: string

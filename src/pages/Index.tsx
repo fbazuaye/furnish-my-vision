@@ -17,6 +17,14 @@ export interface StagedImage {
   roomType: string;
   style: string;
   timestamp: Date;
+  stagingElements?: {
+    furniture: string[];
+    decor: string[];
+    lighting: string[];
+    colors: string[];
+    materials: string[];
+    accessories: string[];
+  };
 }
 
 const Index = () => {
