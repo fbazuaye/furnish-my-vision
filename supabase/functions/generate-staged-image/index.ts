@@ -219,7 +219,7 @@ serve(async (req) => {
 
     console.log('Enhanced prompt:', enhancedPrompt);
 
-    // Build the API request for inpainting
+    // Build the API request for image transformation using img2img
     const taskUUID = crypto.randomUUID();
     const apiRequest = [
       {
@@ -238,8 +238,8 @@ serve(async (req) => {
         outputFormat: "WEBP",
         CFGScale: 7,
         scheduler: "FlowMatchEulerDiscreteScheduler",
-        strength: 0.7,
-        steps: 20
+        strength: 0.8,
+        steps: 8
       }
     ];
 
