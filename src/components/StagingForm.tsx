@@ -102,7 +102,7 @@ export const StagingForm = ({
         })
       );
       
-      const { data, error } = await supabase.functions.invoke('generate-staged-image', {
+      const { data, error } = await supabase.functions.invoke('test-staging', {
         body: {
           originalImageUrl: imageUrl,
           prompt: prompt,
@@ -112,7 +112,16 @@ export const StagingForm = ({
         }
       });
 
-      if (error) throw error;
+      console.log('Edge function response:', { data, error });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw new Error(error.message || 'Edge function failed');
+      }
+
+      if (!data) {
+        throw new Error('No data returned from edge function');
+      }
 
       const stagedImage: StagedImage = {
         id: data.id,
@@ -122,12 +131,19 @@ export const StagingForm = ({
         roomType: data.roomType,
         style: data.style,
         timestamp: new Date(data.timestamp),
+        stagingElements: data.stagingElements
       };
 
       onStaging(stagedImage);
       toast.success("Room staged successfully!");
     } catch (error: any) {
       console.error("Staging error:", error);
+      console.error("Error details:", {
+        message: error.message,
+        details: error.details,
+        stack: error.stack,
+        response: error
+      });
       toast.error(error.message || "Failed to stage room. Please try again.");
     } finally {
       setIsProcessing(false);
