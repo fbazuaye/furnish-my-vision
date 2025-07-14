@@ -114,17 +114,20 @@ function generateStagingBreakdown(roomType: string, style: string, prompt: strin
 }
 
 serve(async (req) => {
-  console.log('Edge function called:', req.method, req.url);
+  console.log('=== Edge function called ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
   
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight');
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    console.log('Processing request...');
-    
     // Get the authorization header
     const authHeader = req.headers.get('Authorization')
+    console.log('Auth header present:', !!authHeader);
+    
     if (!authHeader) {
       console.error('No authorization header provided');
       return new Response(
@@ -133,19 +136,33 @@ serve(async (req) => {
       )
     }
 
-    // Create Supabase client
-    console.log('Creating Supabase client...');
+    // Check environment variables
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    const runwareApiKey = Deno.env.get('RUNWARE_API_KEY');
+    
+    console.log('Environment check:');
+    console.log('- SUPABASE_URL present:', !!supabaseUrl);
+    console.log('- SUPABASE_ANON_KEY present:', !!supabaseAnonKey);
+    console.log('- RUNWARE_API_KEY present:', !!runwareApiKey);
     
     if (!supabaseUrl || !supabaseAnonKey) {
       console.error('Missing Supabase environment variables');
       return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
+        JSON.stringify({ error: 'Server configuration error: Missing Supabase config' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    if (!runwareApiKey) {
+      console.error('Runware API key not configured');
+      return new Response(
+        JSON.stringify({ error: 'Runware API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
     
+    // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: {
         headers: { Authorization: authHeader },
@@ -155,6 +172,7 @@ serve(async (req) => {
     // Get the current user
     console.log('Getting user...');
     const { data: { user }, error: userError } = await supabase.auth.getUser()
+    
     if (userError) {
       console.error('User authentication error:', userError);
       return new Response(
@@ -177,7 +195,7 @@ serve(async (req) => {
     let requestBody;
     try {
       requestBody = await req.json();
-      console.log('Request body parsed:', requestBody);
+      console.log('Request body received:', Object.keys(requestBody));
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
       return new Response(
@@ -186,40 +204,29 @@ serve(async (req) => {
       )
     }
 
-    const { originalImageUrl, prompt, roomType, style, referenceImages }: GenerateImageRequest = requestBody;
+    const { originalImageUrl, prompt, roomType, style } = requestBody;
 
     if (!originalImageUrl || !prompt || !roomType || !style) {
-      console.error('Missing required fields:', { originalImageUrl: !!originalImageUrl, prompt: !!prompt, roomType: !!roomType, style: !!style });
+      console.error('Missing required fields');
       return new Response(
         JSON.stringify({ error: 'Missing required fields: originalImageUrl, prompt, roomType, style' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Get Runware API key from secrets
-    const runwareApiKey = Deno.env.get('RUNWARE_API_KEY')
-    if (!runwareApiKey) {
-      console.error('Runware API key not configured');
-      return new Response(
-        JSON.stringify({ error: 'Runware API key not configured in environment variables' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    console.log('Generating staging breakdown...');
+    console.log('All validations passed, generating staging breakdown...');
+    
     // Generate detailed staging breakdown
     const stagingElements = generateStagingBreakdown(roomType, style, prompt);
     
-    // Generate image using Runware API
-    let enhancedPrompt = `${prompt}. Transform this ${roomType} with ${style} style furniture and decor. Professional interior design, well-lit, modern staging. ${stagingElements.promptEnhancement}`;
+    // Generate enhanced prompt
+    const enhancedPrompt = `${prompt}. Transform this ${roomType} with ${style} style furniture and decor. Professional interior design, well-lit, modern staging. ${stagingElements.promptEnhancement}`;
     
-    if (referenceImages && referenceImages.length > 0) {
-      enhancedPrompt += ` Use the provided reference images as style and design inspiration.`;
-    }
+    console.log('Enhanced prompt generated');
 
-    console.log('Enhanced prompt:', enhancedPrompt);
-
-    // Build the API request for image transformation using img2img
+    // Test Runware API connection first
+    console.log('Testing Runware API connection...');
+    
     const taskUUID = crypto.randomUUID();
     const apiRequest = [
       {
@@ -244,27 +251,46 @@ serve(async (req) => {
     ];
 
     console.log('Calling Runware API...');
-    const runwareResponse = await fetch('https://api.runware.ai/v1', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(apiRequest)
-    })
+    let runwareResponse;
+    
+    try {
+      runwareResponse = await fetch('https://api.runware.ai/v1', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(apiRequest)
+      });
+    } catch (fetchError) {
+      console.error('Fetch error calling Runware API:', fetchError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to connect to Runware API', details: fetchError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     console.log('Runware API response status:', runwareResponse.status);
 
     if (!runwareResponse.ok) {
       const errorText = await runwareResponse.text();
-      console.error('Runware API error:', runwareResponse.status, errorText);
+      console.error('Runware API error response:', errorText);
       return new Response(
-        JSON.stringify({ error: `Runware API error: ${runwareResponse.status} - ${errorText}` }),
+        JSON.stringify({ error: `Runware API error: ${runwareResponse.status}`, details: errorText }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const runwareData = await runwareResponse.json()
-    console.log('Runware response data:', JSON.stringify(runwareData, null, 2));
+    let runwareData;
+    try {
+      runwareData = await runwareResponse.json();
+      console.log('Runware response parsed successfully');
+    } catch (jsonError) {
+      console.error('Failed to parse Runware response as JSON:', jsonError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid response from Runware API' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     // Check for errors in the response
     if (runwareData.error || runwareData.errors) {
@@ -278,42 +304,42 @@ serve(async (req) => {
     // Find the image generation result
     const imageResult = runwareData.data?.find((item: any) => item.taskType === "imageInference")
     
-    if (!imageResult) {
-      console.error('No image inference result found in response');
-      return new Response(
-        JSON.stringify({ error: 'No image generation result found' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-    
-    if (!imageResult.imageURL) {
-      console.error('No image URL in result:', imageResult);
+    if (!imageResult || !imageResult.imageURL) {
+      console.error('No valid image result:', imageResult);
       return new Response(
         JSON.stringify({ error: 'No image URL generated' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log('Generated image URL:', imageResult.imageURL);
+    console.log('Image generated successfully, downloading...');
 
-    // Download the generated image
-    console.log('Downloading generated image...');
-    const imageResponse = await fetch(imageResult.imageURL)
-    if (!imageResponse.ok) {
-      console.error('Failed to download image:', imageResponse.status, imageResponse.statusText);
+    // Download and upload the image
+    let imageResponse;
+    try {
+      imageResponse = await fetch(imageResult.imageURL);
+    } catch (downloadError) {
+      console.error('Failed to download generated image:', downloadError);
       return new Response(
-        JSON.stringify({ error: `Failed to download generated image: ${imageResponse.status}` }),
+        JSON.stringify({ error: 'Failed to download generated image', details: downloadError.message }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    
+    if (!imageResponse.ok) {
+      console.error('Image download failed:', imageResponse.status);
+      return new Response(
+        JSON.stringify({ error: `Failed to download image: ${imageResponse.status}` }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
     
     const imageBlob = await imageResponse.blob()
-    console.log('Image downloaded, size:', imageBlob.size, 'bytes');
+    console.log('Image downloaded, uploading to storage...');
     
     const fileName = `${user.id}/${crypto.randomUUID()}.webp`
     
     // Upload to storage bucket
-    console.log('Uploading to Supabase storage...');
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('staged-images')
       .upload(fileName, imageBlob, {
@@ -329,18 +355,15 @@ serve(async (req) => {
       )
     }
 
-    console.log('Image uploaded successfully:', uploadData);
-
     // Get the public URL
     const { data: publicUrlData } = supabase.storage
       .from('staged-images')
       .getPublicUrl(fileName)
 
     const stagedImageUrl = publicUrlData.publicUrl
-    console.log('Public URL generated:', stagedImageUrl);
+    console.log('Public URL generated, saving to database...');
 
     // Store the staged image in the database
-    console.log('Saving to database...');
     const { data: stagedImage, error: dbError } = await supabase
       .from('staged_images')
       .insert({
@@ -368,7 +391,7 @@ serve(async (req) => {
       )
     }
 
-    console.log('Successfully saved to database:', stagedImage.id);
+    console.log('=== SUCCESS: All operations completed ===');
 
     const response = {
       id: stagedImage.id,
@@ -388,20 +411,22 @@ serve(async (req) => {
       }
     };
 
-    console.log('Returning successful response');
     return new Response(
       JSON.stringify(response),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
-    console.error('Unexpected error:', error)
-    console.error('Error stack:', error.stack)
+    console.error('=== UNEXPECTED ERROR ===');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('Error name:', error.name);
+    
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error', 
         details: error.message,
-        stack: error.stack 
+        type: error.name
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
