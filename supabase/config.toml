@@ -1,1 +1,7 @@
 project_id = "ulqnimmhknylzhbxvibw"
+
+[functions.generate-staged-image]
+verify_jwt = true
+
+[functions.test-staging]
+verify_jwt = true
