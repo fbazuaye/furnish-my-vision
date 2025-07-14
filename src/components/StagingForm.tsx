@@ -102,7 +102,7 @@ export const StagingForm = ({
         })
       );
       
-      const { data, error } = await supabase.functions.invoke('test-staging', {
+      const { data, error } = await supabase.functions.invoke('generate-staged-image', {
         body: {
           originalImageUrl: imageUrl,
           prompt: prompt,
