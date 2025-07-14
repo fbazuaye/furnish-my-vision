@@ -58,35 +58,35 @@ function generateStagingBreakdown(roomType: string, style: string, prompt: strin
       furniture.push('Accent furniture', 'Storage solutions');
   }
 
-  // Style-specific additions
+  // Style-specific additions with detailed materials
   switch (style.toLowerCase()) {
     case 'modern':
       colors.push('White', 'Gray', 'Black', 'Bold accent colors');
-      materials.push('Glass', 'Metal', 'Leather', 'Concrete');
+      materials.push('Glass', 'Metal', 'Leather', 'Concrete', 'Polished concrete floors', 'Glass tile walls', 'Exposed steel ceiling', 'Chrome fixtures', 'Marble countertops');
       lighting.push('Recessed lighting', 'Pendant lights', 'Floor lamps');
       decor.push('Abstract art', 'Geometric patterns', 'Minimalist sculptures');
       break;
     case 'traditional':
       colors.push('Warm neutrals', 'Rich blues', 'Deep reds', 'Gold accents');
-      materials.push('Wood', 'Fabric', 'Brass', 'Natural stone');
+      materials.push('Wood', 'Fabric', 'Brass', 'Natural stone', 'Hardwood floors', 'Crown molding', 'Coffered ceilings', 'Wainscoting walls', 'Marble fireplaces');
       lighting.push('Chandeliers', 'Table lamps', 'Sconces');
       decor.push('Classic paintings', 'Ornate mirrors', 'Traditional patterns');
       break;
     case 'minimalist':
       colors.push('White', 'Beige', 'Light gray', 'Natural tones');
-      materials.push('Natural wood', 'Linen', 'Cotton', 'Stone');
+      materials.push('Natural wood', 'Linen', 'Cotton', 'Stone', 'White oak floors', 'Smooth plaster walls', 'Clean white ceilings', 'Natural stone accents');
       lighting.push('Natural light', 'Simple pendant lights', 'Floor lamps');
       decor.push('Single statement piece', 'Plants', 'Clean lines');
       break;
     case 'industrial':
       colors.push('Gray', 'Black', 'Brown', 'Rust accents');
-      materials.push('Metal', 'Raw wood', 'Brick', 'Concrete');
+      materials.push('Metal', 'Raw wood', 'Brick', 'Concrete', 'Polished concrete floors', 'Exposed brick walls', 'Exposed ductwork ceiling', 'Steel beam effects', 'Weathered wood');
       lighting.push('Exposed bulbs', 'Metal fixtures', 'Track lighting');
       decor.push('Industrial art', 'Metal sculptures', 'Vintage posters');
       break;
     case 'scandinavian':
       colors.push('White', 'Light gray', 'Soft pastels', 'Natural wood tones');
-      materials.push('Light wood', 'Wool', 'Linen', 'Ceramic');
+      materials.push('Light wood', 'Wool', 'Linen', 'Ceramic', 'Light pine floors', 'White painted walls', 'Wood beam ceilings', 'Natural fiber textures');
       lighting.push('Pendant lights', 'String lights', 'Natural light');
       decor.push('Nordic art', 'Hygge elements', 'Cozy textiles');
       break;
