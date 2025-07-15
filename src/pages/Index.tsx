@@ -69,19 +69,12 @@ const Index = () => {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex flex-col">
         <Header />
         <div className="container mx-auto px-4 py-4">
-          <div className="flex space-x-4">
-            <Link to="/">
-              <Button variant="ghost">
-                ← Back to Home
-              </Button>
-            </Link>
-            <Button 
-              onClick={() => setShowProfile(false)} 
-              variant="outline"
-            >
-              ← Back to Staging
-            </Button>
-          </div>
+          <Button 
+            onClick={() => setShowProfile(false)} 
+            variant="outline"
+          >
+            ← Back to Staging
+          </Button>
         </div>
         <UserProfile user={user} onSignOut={() => setShowProfile(false)} />
         <Footer />
@@ -95,14 +88,7 @@ const Index = () => {
       
       <div className="container mx-auto px-4 py-4">
         <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center space-x-4">
-            <Link to="/">
-              <Button variant="ghost">
-                ← Back to Home
-              </Button>
-            </Link>
-            <h2 className="text-lg font-semibold">Welcome, {user.user_metadata?.full_name || user.email}</h2>
-          </div>
+          <h2 className="text-lg font-semibold">Welcome, {user.user_metadata?.full_name || user.email}</h2>
           <Button onClick={() => setShowProfile(true)} variant="outline">
             View Profile & Gallery
           </Button>
